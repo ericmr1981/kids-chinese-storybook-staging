@@ -16,14 +16,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Write SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          # Write the private key from GitHub Secrets to a file (preserve newlines)
+          cat > ~/.ssh/id_vps_deploy <<'KEY'
+          ${{ secrets.VPS_SSH_KEY }}
+          KEY
+          chmod 600 ~/.ssh/id_vps_deploy
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: ~/.ssh/id_vps_deploy
           port: ${{ secrets.VPS_PORT }}
-          script_stop: true
           script: |
             set -euo pipefail
 
@@ -47,7 +57,6 @@ jobs:
             corepack enable || true
             corepack prepare pnpm@latest --activate || true
 
-            # Make sure app directory exists
             mkdir -p "$APP_DIR"
 
             # Clone or update
@@ -69,7 +78,6 @@ jobs:
             pnpm config set registry https://registry.npmmirror.com
             npm config set registry https://registry.npmmirror.com || true
 
-            # Install & build
             pnpm install --frozen-lockfile
             pnpm build
 
