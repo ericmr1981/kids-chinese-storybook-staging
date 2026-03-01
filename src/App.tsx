@@ -1,50 +1,62 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CreateStoryPage } from './pages/CreateStoryPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Button } from './components/Button';
 
-function App() {
-  return (
-    <BrowserRouter>
-      <div className="min-h-screen">
-        {/* 导航栏 */}
-        <nav className="bg-white border-b border-neutral-200 px-4 sm:px-6 py-4 sticky top-0 z-10">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="text-2xl">📚</span>
-              <span className="text-xl font-bold text-neutral-800">
-                儿童中文故事
-              </span>
-            </Link>
+function NavBar() {
+  const location = useLocation();
+  const isHome = location.pathname === '/';
 
-            <div className="flex items-center gap-2 sm:gap-4">
+  // 首页已经有主按钮区，导航可保留但弱化
+  return (
+    <nav className="px-4 sm:px-6 pt-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-white/70 backdrop-blur-md border border-kid-border shadow-soft rounded-full px-4 py-3 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="text-2xl">📚</span>
+            <span className="text-base sm:text-lg font-extrabold text-neutral-900">
+              儿童中文学习
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            {!isHome && (
               <Link to="/">
                 <Button variant="ghost" size="sm">
                   首页
                 </Button>
               </Link>
-              <Link to="/create">
-                <Button variant="ghost" size="sm">
-                  创作
-                </Button>
-              </Link>
-              <Link to="/library">
-                <Button variant="ghost" size="sm">
-                  书架
-                </Button>
-              </Link>
-              <Link to="/settings">
-                <Button variant="ghost" size="sm">
-                  设置
-                </Button>
-              </Link>
-            </div>
+            )}
+            <Link to="/create">
+              <Button variant="ghost" size="sm">
+                创作
+              </Button>
+            </Link>
+            <Link to="/library">
+              <Button variant="ghost" size="sm">
+                书架
+              </Button>
+            </Link>
+            <Link to="/settings">
+              <Button variant="ghost" size="sm">
+                设置
+              </Button>
+            </Link>
           </div>
-        </nav>
+        </div>
+      </div>
+    </nav>
+  );
+}
 
-        {/* 路由 */}
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="min-h-screen">
+        <NavBar />
+
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/create" element={<CreateStoryPage />} />

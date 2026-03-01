@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from './Card';
 import { Button } from './Button';
+import { SpeakChip } from './SpeakChip';
 import type { Story } from '../store/storyStore';
 
 interface StoryCardProps {
@@ -49,13 +50,8 @@ export function StoryCard({ story, onSave, onDelete }: StoryCardProps) {
 
         {/* 关键词 */}
         <div className="flex flex-wrap gap-2">
-          {story.keywords.map((keyword, index) => (
-            <span
-              key={index}
-              className="px-3 py-1 text-sm font-medium bg-primary-100 text-primary-700 rounded-full"
-            >
-              {keyword}
-            </span>
+          {story.keywords.map((keyword) => (
+            <SpeakChip key={keyword} text={keyword} />
           ))}
         </div>
 

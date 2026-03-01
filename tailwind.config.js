@@ -1,13 +1,36 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
       colors: {
-        // Primary - 温暖的橙黄色系
+        // Kids palette (参考 chinese-learning-kids 的“奶油底色 + 粉蓝渐变”)
+        kid: {
+          bg: '#FFFDF4',
+          card: '#FFFFFF',
+          border: '#F3E9C7',
+          text: '#2B2A2A',
+          muted: '#6B7280',
+          pink: {
+            400: '#FF7ABF',
+            500: '#FF5FAE',
+            600: '#FF3E9A',
+          },
+          blue: {
+            400: '#6BB7FF',
+            500: '#4DA3FF',
+            600: '#2B8CFF',
+          },
+          yellow: {
+            400: '#FFD166',
+            500: '#FFC233',
+          },
+        },
+
+        // keep existing warm palette for components that still use primary/secondary
         primary: {
           50: '#FFF7ED',
           100: '#FFEDD5',
@@ -20,7 +43,6 @@ export default {
           800: '#9A3412',
           900: '#7C2D12',
         },
-        // Secondary - 柔和的蓝绿色
         secondary: {
           50: '#F0FDFA',
           100: '#CCFBF1',
@@ -33,7 +55,6 @@ export default {
           800: '#115E59',
           900: '#134E4A',
         },
-        // Neutral - 温暖灰色
         neutral: {
           50: '#FAFAF9',
           100: '#F5F5F4',
@@ -55,10 +76,11 @@ export default {
         '2xl': '2rem',
         full: '9999px',
       },
-      fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+      boxShadow: {
+        soft: '0 10px 30px rgba(0,0,0,0.06)',
+        card: '0 14px 34px rgba(0,0,0,0.08)',
       },
     },
   },
   plugins: [],
-}
+};

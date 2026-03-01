@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { StoryCard } from '../components/StoryCard';
+import { SpeakChip } from '../components/SpeakChip';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useStoryStore } from '../store/storyStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { createLLMProvider, createImageProvider } from '../providers';
+import { PageShell } from '../components/PageShell';
 import type { PartialStory } from '../store/storyStore';
 import type { Story } from '../store/storyStore';
 
@@ -19,6 +21,14 @@ export function CreateStoryPage() {
 
   const addStory = useStoryStore((state) => state.addStory);
   const settings = useSettingsStore();
+
+  const derivedKeywords = useMemo(() => {
+    return keywords
+      .split(/[,，\s]+/)
+      .map((k) => k.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+  }, [keywords]);
 
   const handleGenerate = async () => {
     if (!keywords.trim()) {
@@ -69,7 +79,8 @@ export function CreateStoryPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-8">
+    <PageShell>
+      <div className="min-h-screen p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* 标题和返回 */}
         <div className="flex items-center gap-4">
@@ -109,6 +120,17 @@ export function CreateStoryPage() {
             </Button>
           </div>
 
+          {derivedKeywords.length > 0 && (
+            <div className="mt-4">
+              <div className="text-sm text-neutral-600 mb-2">点击朗读关键词：</div>
+              <div className="flex flex-wrap gap-2">
+                {derivedKeywords.map((k) => (
+                  <SpeakChip key={k} text={k} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {notice && (
             <div className="mt-4 p-3 rounded-xl bg-secondary-50 border border-secondary-200 text-secondary-700 text-sm">
               {notice}
@@ -126,6 +148,7 @@ export function CreateStoryPage() {
           </Link>
         </div>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

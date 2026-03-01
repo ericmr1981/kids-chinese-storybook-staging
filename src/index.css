@@ -1,9 +1,35 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  height: 100%;
+}
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #FFFBF5; /* 温暖的奶白色 */
+  background: #FFFDF4;
+  color: #2B2A2A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.kids-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.kids-bg::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 520px;
+  background: radial-gradient(closest-side at 50% 30%, rgba(255, 95, 174, 0.10), transparent 70%),
+              radial-gradient(closest-side at 70% 55%, rgba(77, 163, 255, 0.12), transparent 70%),
+              radial-gradient(closest-side at 30% 60%, rgba(255, 194, 51, 0.10), transparent 70%);
+  pointer-events: none;
 }

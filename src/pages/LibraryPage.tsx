@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { StoryCard } from '../components/StoryCard';
+import { PageShell } from '../components/PageShell';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useStoryStore } from '../store/storyStore';
 import type { Story } from '../store/storyStore';
@@ -36,7 +37,8 @@ export function LibraryPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-8">
+    <PageShell>
+      <div className="min-h-screen p-4 sm:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 标题和操作 */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -119,6 +121,7 @@ export function LibraryPage() {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
-    </div>
+      </div>
+    </PageShell>
   );
 }

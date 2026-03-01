@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useSettingsStore } from '../store/settingsStore';
+import { PageShell } from '../components/PageShell';
 
 export function SettingsPage() {
   const settings = useSettingsStore();
 
   return (
-    <div className="min-h-screen p-4 sm:p-8">
+    <PageShell>
+      <div className="min-h-screen p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* 标题和返回 */}
         <div className="flex items-center gap-4">
@@ -127,6 +129,7 @@ export function SettingsPage() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

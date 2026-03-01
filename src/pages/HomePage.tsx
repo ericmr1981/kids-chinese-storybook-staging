@@ -1,51 +1,113 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
+import { Card } from '../components/Card';
+import { PageShell } from '../components/PageShell';
+
+function FeatureCard({
+  icon,
+  title,
+  desc,
+  iconBg,
+}: {
+  icon: string;
+  title: string;
+  desc: string;
+  iconBg: string;
+}) {
+  return (
+    <Card className="border-2 border-kid-border shadow-soft rounded-[28px]">
+      <div className="p-7 text-center space-y-2">
+        <div className={`mx-auto h-14 w-14 rounded-2xl flex items-center justify-center ${iconBg}`}>
+          <span className="text-2xl">{icon}</span>
+        </div>
+        <h3 className="text-lg font-extrabold text-neutral-900">{title}</h3>
+        <p className="text-sm text-neutral-600 leading-relaxed">{desc}</p>
+      </div>
+    </Card>
+  );
+}
 
 export function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="max-w-2xl w-full text-center space-y-8">
-        {/* Logo / Icon */}
-        <div className="text-8xl mb-4">📚</div>
+    <PageShell>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
+        <div className="w-full max-w-5xl text-center space-y-10">
+          {/* 顶部装饰 */}
+          <div className="text-5xl">✨</div>
 
-        {/* 标题 */}
-        <h1 className="text-4xl sm:text-5xl font-bold text-neutral-800">
-          儿童中文故事
-        </h1>
+          {/* 标题 */}
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
+            <span className="bg-gradient-to-r from-kid-pink-500 to-kid-blue-500 bg-clip-text text-transparent">
+              儿童中文学习
+            </span>
+          </h1>
 
-        {/* 副标题 */}
-        <p className="text-xl text-neutral-600">
-          输入关键词，生成有趣的中文故事，配上精美图片和语音朗读
-        </p>
+          <p className="text-lg sm:text-xl text-neutral-700 font-semibold">
+            让识字变得像听故事一样有趣！
+          </p>
+          <p className="text-sm sm:text-base text-neutral-500">
+            专为 3-6 岁幼儿园小朋友设计
+          </p>
 
-        {/* 特点 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-          <div className="p-6 bg-white rounded-2xl shadow-lg border border-neutral-100">
-            <div className="text-4xl mb-2">✨</div>
-            <h3 className="text-lg font-semibold text-neutral-800 mb-1">AI 创作故事</h3>
-            <p className="text-sm text-neutral-600">智能生成适合儿童的故事</p>
+          {/* 主按钮区 */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/create">
+              <Button variant="kidPink" size="lg" className="w-full sm:w-auto min-w-[160px]">
+                开始学习
+              </Button>
+            </Link>
+            <Link to="/library">
+              <Button variant="kidBlue" size="lg" className="w-full sm:w-auto min-w-[160px]">
+                学习中心
+              </Button>
+            </Link>
           </div>
-          <div className="p-6 bg-white rounded-2xl shadow-lg border border-neutral-100">
-            <div className="text-4xl mb-2">🎨</div>
-            <h3 className="text-lg font-semibold text-neutral-800 mb-1">精美配图</h3>
-            <p className="text-sm text-neutral-600">为故事配上美丽插图</p>
-          </div>
-          <div className="p-6 bg-white rounded-2xl shadow-lg border border-neutral-100">
-            <div className="text-4xl mb-2">🔊</div>
-            <h3 className="text-lg font-semibold text-neutral-800 mb-1">语音朗读</h3>
-            <p className="text-sm text-neutral-600">标准中文语音播放</p>
-          </div>
-        </div>
 
-        {/* 开始按钮 */}
-        <div className="pt-8">
-          <Link to="/create">
-            <Button size="lg" className="text-xl px-12 py-4">
-              🚀 开始创作
-            </Button>
-          </Link>
+          {/* 三张功能卡 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6">
+            <FeatureCard
+              icon="📖"
+              title="AI 故事生成"
+              desc="输入生字或关键词，AI 自动生成有趣的故事"
+              iconBg="bg-kid-pink-500/15"
+            />
+            <FeatureCard
+              icon="⚡️"
+              title="智能配图"
+              desc="根据故事内容生成精美插图"
+              iconBg="bg-kid-blue-500/15"
+            />
+            <FeatureCard
+              icon="⭐️"
+              title="故事书架"
+              desc="自动保存故事，随时回顾与管理"
+              iconBg="bg-kid-yellow-500/20"
+            />
+          </div>
+
+          {/* 底部 CTA */}
+          <div className="pt-10 flex justify-center">
+            <Card className="w-full max-w-2xl border-2 border-kid-border shadow-soft rounded-[28px]">
+              <div className="p-8 text-center space-y-4">
+                <div className="text-4xl">🌟</div>
+                <h2 className="text-2xl font-extrabold text-neutral-900">
+                  准备好开始冒险了吗？
+                </h2>
+                <p className="text-neutral-600">
+                  和可爱的小伙伴一起，在故事中学会新汉字！
+                </p>
+                <div className="pt-2">
+                  <Link to="/create">
+                    <Button variant="kidPink" size="lg" className="w-full sm:w-[260px]">
+                      进入学习中心
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
