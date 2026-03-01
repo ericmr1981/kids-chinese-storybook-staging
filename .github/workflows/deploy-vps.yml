@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Write SSH key (sanitized)
+      - name: Write SSH key (raw or base64)
         shell: bash
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -24,13 +24,36 @@ jobs:
           set -euo pipefail
           mkdir -p .github
           python3 - <<'PY'
-          import os
-          key = os.environ.get('VPS_SSH_KEY','')
-          # Normalize line endings and strip accidental indentation
-          key = key.replace('\r','')
-          key = "\n".join([ln.lstrip() for ln in key.split('\n')]).strip() + "\n"
-          if 'BEGIN' not in key or 'PRIVATE KEY' not in key:
-              raise SystemExit('VPS_SSH_KEY does not look like a private key (missing header)')
+          import os, base64
+          raw = os.environ.get('VPS_SSH_KEY','')
+          raw = raw.strip()
+          # Remove accidental label lines
+          raw_lines = [ln for ln in raw.replace('','').split('
+') if ln.strip() and not ln.strip().startswith(('Name:', 'Value:'))]
+          raw2 = '
+'.join(raw_lines).strip()
+
+          def normalize(k: str) -> str:
+              k = k.replace('','')
+              k = '
+'.join([ln.lstrip() for ln in k.split('
+')]).strip() + '
+'
+              return k
+
+          key = normalize(raw2)
+          if ('BEGIN' not in key) or ('PRIVATE KEY' not in key):
+              # Might be base64-encoded
+              try:
+                  decoded = base64.b64decode(raw2).decode('utf-8', 'ignore')
+                  decoded = normalize(decoded)
+                  if ('BEGIN' in decoded) and ('PRIVATE KEY' in decoded):
+                      key = decoded
+                  else:
+                      raise SystemExit('VPS_SSH_KEY is neither a raw private key nor base64(private_key). Please paste the full key including BEGIN/END lines, or store base64 of the key.')
+              except Exception as e:
+                  raise SystemExit('VPS_SSH_KEY is neither a raw private key nor base64(private_key). Please paste the full key including BEGIN/END lines, or store base64 of the key.')
+
           open('.github/.deploy_key','w',encoding='utf-8').write(key)
           PY
           chmod 600 .github/.deploy_key
