@@ -16,13 +16,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Write SSH key (workspace file)
+      - name: Write SSH key (sanitized)
         shell: bash
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
           set -euo pipefail
           mkdir -p .github
-          # Write secret exactly (preserve newlines); do NOT echo to logs
-          printf '%s' "${{ secrets.VPS_SSH_KEY }}" > .github/.deploy_key
+          python3 - <<'PY'
+          import os
+          key = os.environ.get('VPS_SSH_KEY','')
+          # Normalize line endings and strip accidental indentation
+          key = key.replace('\r','')
+          key = "\n".join([ln.lstrip() for ln in key.split('\n')]).strip() + "\n"
+          if 'BEGIN' not in key or 'PRIVATE KEY' not in key:
+              raise SystemExit('VPS_SSH_KEY does not look like a private key (missing header)')
+          open('.github/.deploy_key','w',encoding='utf-8').write(key)
+          PY
           chmod 600 .github/.deploy_key
 
       - name: Deploy via SSH
@@ -39,7 +49,6 @@ jobs:
             REPO=https://github.com/ericmr1981/kids-chinese-storybook-staging.git
             REPO_PROXY=https://ghproxy.com/${REPO}
 
-            # Basic deps
             if ! command -v git >/dev/null 2>&1; then
               apt-get update -y && apt-get install -y git
             fi
@@ -47,7 +56,6 @@ jobs:
               apt-get update -y && apt-get install -y curl
             fi
 
-            # Node.js 20 + corepack/pnpm
             if ! command -v node >/dev/null 2>&1; then
               curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
               apt-get install -y nodejs
@@ -57,7 +65,6 @@ jobs:
 
             mkdir -p "$APP_DIR"
 
-            # Clone or update
             if [ -d "$APP_DIR/.git" ]; then
               cd "$APP_DIR"
               git fetch --all --prune
@@ -71,7 +78,6 @@ jobs:
               git checkout main
             fi
 
-            # Mirrors for CN
             pnpm config set registry https://registry.npmmirror.com
             npm config set registry https://registry.npmmirror.com || true
 
