@@ -16,23 +16,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Write SSH key
+      - name: Write SSH key (workspace file)
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p ~/.ssh
-          # Write the private key from GitHub Secrets to a file (preserve newlines)
-          cat > ~/.ssh/id_vps_deploy <<'KEY'
-          ${{ secrets.VPS_SSH_KEY }}
-          KEY
-          chmod 600 ~/.ssh/id_vps_deploy
+          mkdir -p .github
+          # Write secret exactly (preserve newlines); do NOT echo to logs
+          printf '%s' "${{ secrets.VPS_SSH_KEY }}" > .github/.deploy_key
+          chmod 600 .github/.deploy_key
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key_path: ~/.ssh/id_vps_deploy
+          key_path: .github/.deploy_key
           port: ${{ secrets.VPS_PORT }}
           script: |
             set -euo pipefail
@@ -49,7 +47,7 @@ jobs:
               apt-get update -y && apt-get install -y curl
             fi
 
-            # Node.js 20 + corepack/pnpm (适配中国网络，保持安装命令简单可靠)
+            # Node.js 20 + corepack/pnpm
             if ! command -v node >/dev/null 2>&1; then
               curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
               apt-get install -y nodejs
@@ -67,21 +65,19 @@ jobs:
             else
               rm -rf "$APP_DIR"/*
               cd "$APP_DIR"
-              # Try normal clone first, then fallback to proxy
               if ! git clone "$REPO" .; then
                 git clone "$REPO_PROXY" .
               fi
               git checkout main
             fi
 
-            # 镜像源（可按需调整）
+            # Mirrors for CN
             pnpm config set registry https://registry.npmmirror.com
             npm config set registry https://registry.npmmirror.com || true
 
             pnpm install --frozen-lockfile
             pnpm build
 
-            # systemd service
             cat >/etc/systemd/system/kids-chinese-storybook.service <<'UNIT'
             [Unit]
             Description=Kids Chinese Storybook (Vite preview)
