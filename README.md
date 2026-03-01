@@ -339,3 +339,11 @@ Mock Provider 是开箱即用的，不需要任何配置：
 ## 许可证
 
 ISC
+## VPS 部署（中国网络建议）
+
+- 服务端口：**8083**
+- 推荐方式：使用 GitHub Actions 通过 SSH 自动拉取并部署到 VPS。
+- 依赖安装加速：建议设置 pnpm/npm 镜像源为 `https://registry.npmmirror.com`。
+- GitHub 拉取加速（可选）：`https://ghproxy.com/https://github.com/...`
+
+> ⚠️ 安全提醒：生产环境不要在浏览器端直接使用真实 API Key。建议改为服务端代理/Serverless 代管 key。

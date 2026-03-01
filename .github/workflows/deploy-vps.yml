@@ -1,0 +1,98 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            APP_DIR=/opt/apps/kids-chinese-storybook
+            REPO=https://github.com/ericmr1981/kids-chinese-storybook-staging.git
+            REPO_PROXY=https://ghproxy.com/${REPO}
+
+            # Basic deps
+            if ! command -v git >/dev/null 2>&1; then
+              apt-get update -y && apt-get install -y git
+            fi
+            if ! command -v curl >/dev/null 2>&1; then
+              apt-get update -y && apt-get install -y curl
+            fi
+
+            # Node.js 20 + corepack/pnpm (适配中国网络，保持安装命令简单可靠)
+            if ! command -v node >/dev/null 2>&1; then
+              curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+              apt-get install -y nodejs
+            fi
+            corepack enable || true
+            corepack prepare pnpm@latest --activate || true
+
+            # Make sure app directory exists
+            mkdir -p "$APP_DIR"
+
+            # Clone or update
+            if [ -d "$APP_DIR/.git" ]; then
+              cd "$APP_DIR"
+              git fetch --all --prune
+              git reset --hard origin/main
+            else
+              rm -rf "$APP_DIR"/*
+              cd "$APP_DIR"
+              # Try normal clone first, then fallback to proxy
+              if ! git clone "$REPO" .; then
+                git clone "$REPO_PROXY" .
+              fi
+              git checkout main
+            fi
+
+            # 镜像源（可按需调整）
+            pnpm config set registry https://registry.npmmirror.com
+            npm config set registry https://registry.npmmirror.com || true
+
+            # Install & build
+            pnpm install --frozen-lockfile
+            pnpm build
+
+            # systemd service
+            cat >/etc/systemd/system/kids-chinese-storybook.service <<'UNIT'
+            [Unit]
+            Description=Kids Chinese Storybook (Vite preview)
+            After=network.target
+
+            [Service]
+            Type=simple
+            WorkingDirectory=/opt/apps/kids-chinese-storybook
+            ExecStart=/usr/bin/env pnpm preview
+            Restart=always
+            RestartSec=2
+            Environment=NODE_ENV=production
+
+            [Install]
+            WantedBy=multi-user.target
+            UNIT
+
+            systemctl daemon-reload
+            systemctl enable --now kids-chinese-storybook.service
+            systemctl restart kids-chinese-storybook.service
+
+            echo "Deployed. Listening on 0.0.0.0:8083"
