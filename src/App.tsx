@@ -4,6 +4,14 @@ import { CreateStoryPage } from './pages/CreateStoryPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Button } from './components/Button';
+function requirePortalAuth() {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) return;
+  const hasCookie = document.cookie.split(';').some((c) => c.trim().startsWith('portal_auth='));
+  if (!hasCookie) {
+    window.location.href = '/login.html';
+  }
+}
 
 function NavBar() {
   const location = useLocation();
@@ -52,8 +60,9 @@ function NavBar() {
 }
 
 function App() {
+  requirePortalAuth();
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen">
         <NavBar />
 

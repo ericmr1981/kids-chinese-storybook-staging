@@ -347,3 +347,13 @@ ISC
 - GitHub 拉取加速（可选）：`https://ghproxy.com/https://github.com/...`
 
 > ⚠️ 安全提醒：生产环境不要在浏览器端直接使用真实 API Key。建议改为服务端代理/Serverless 代管 key。
+
+## 门户集成（/kids 子路径）
+
+如果把本应用挂载到门户网站的子路径（例如 `/kids/`），需要在构建时设置：
+
+```bash
+VITE_BASE_PATH=/kids/ pnpm build
+```
+
+并确保反向代理把 `/kids/`、以及 `/api/anthropic`、`/api/ark` 转发到本服务。
