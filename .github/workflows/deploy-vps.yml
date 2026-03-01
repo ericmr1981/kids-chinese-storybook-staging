@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Write SSH key (raw or base64)
+      - name: Prepare SSH private key (raw or base64)
         shell: bash
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -25,36 +25,38 @@ jobs:
           mkdir -p .github
           python3 - <<'PY'
           import os, base64
-          raw = os.environ.get('VPS_SSH_KEY','')
-          raw = raw.strip()
-          # Remove accidental label lines
-          raw_lines = [ln for ln in raw.replace('','').split('
-') if ln.strip() and not ln.strip().startswith(('Name:', 'Value:'))]
-          raw2 = '
-'.join(raw_lines).strip()
+
+          raw = (os.environ.get('VPS_SSH_KEY') or '').strip()
+          if not raw:
+              raise SystemExit('VPS_SSH_KEY is empty')
+
+          # Remove accidental label lines like "Name:" / "Value:" and normalize CRLF
+          lines = [ln.lstrip() for ln in raw.replace('\r','').splitlines()]
+          lines = [ln for ln in lines if ln.strip() and not ln.strip().startswith(('Name:', 'Value:'))]
+          raw2 = '\n'.join(lines).strip()
 
           def normalize(k: str) -> str:
-              k = k.replace('','')
-              k = '
-'.join([ln.lstrip() for ln in k.split('
-')]).strip() + '
-'
+              k = k.replace('\r','').strip() + '\n'
               return k
 
           key = normalize(raw2)
-          if ('BEGIN' not in key) or ('PRIVATE KEY' not in key):
-              # Might be base64-encoded
+
+          def looks_like_key(k: str) -> bool:
+              return ('BEGIN' in k and 'PRIVATE KEY' in k and 'END' in k)
+
+          if not looks_like_key(key):
+              # try base64 decode
               try:
                   decoded = base64.b64decode(raw2).decode('utf-8', 'ignore')
-                  decoded = normalize(decoded)
-                  if ('BEGIN' in decoded) and ('PRIVATE KEY' in decoded):
-                      key = decoded
-                  else:
-                      raise SystemExit('VPS_SSH_KEY is neither a raw private key nor base64(private_key). Please paste the full key including BEGIN/END lines, or store base64 of the key.')
-              except Exception as e:
+              except Exception:
+                  decoded = ''
+              decoded = normalize(decoded) if decoded else ''
+              if looks_like_key(decoded):
+                  key = decoded
+              else:
                   raise SystemExit('VPS_SSH_KEY is neither a raw private key nor base64(private_key). Please paste the full key including BEGIN/END lines, or store base64 of the key.')
 
-          open('.github/.deploy_key','w',encoding='utf-8').write(key)
+          open('.github/.deploy_key', 'w', encoding='utf-8').write(key)
           PY
           chmod 600 .github/.deploy_key
 
@@ -63,8 +65,9 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key_path: .github/.deploy_key
           port: ${{ secrets.VPS_PORT }}
+          key_path: .github/.deploy_key
+          command_timeout: 15m
           script: |
             set -euo pipefail
 
@@ -83,6 +86,7 @@ jobs:
               curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
               apt-get install -y nodejs
             fi
+
             corepack enable || true
             corepack prepare pnpm@latest --activate || true
 
