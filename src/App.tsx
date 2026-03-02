@@ -9,7 +9,11 @@ function requirePortalAuth() {
   if (isLocal) return;
   const hasCookie = document.cookie.split(';').some((c) => c.trim().startsWith('portal_auth='));
   if (!hasCookie) {
-    window.location.href = '/login.html';
+    // 检查是否是设置页面，如果是则允许访问（用于测试）
+    const isSettingsPage = window.location.pathname === '/settings' || window.location.pathname.endsWith('/settings');
+    if (!isSettingsPage) {
+      window.location.href = '/login.html';
+    }
   }
 }
 
