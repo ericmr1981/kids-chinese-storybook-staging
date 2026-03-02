@@ -118,8 +118,17 @@ export const useSettingsStore = create<SettingsStore>()(
             const res = await fetch('/api/settings', { credentials: 'include' });
             if (res.ok) {
               const data = await res.json();
-              // 加载所有设置，如果服务器有值则覆盖本地默认值
-              // 使用 !== undefined 判断，支持空字符串值
+              // 使用服务器设置覆盖本地（确保跨设备同步）
+              // 用户修改设置时会通过 autoSave() 同步到服务器
+              // 只在服务器有明确的非默认值时才覆盖
+              const hasServerSettings = data.useMockLLM !== undefined ||
+                                        data.llmEndpoint ||
+                                        data.llmKey ||
+                                        data.llmModel;
+              if (!hasServerSettings) {
+                // 服务器没有设置，使用本地默认值
+                return;
+              }
               if (data.useMockLLM !== undefined) setInternal({ useMockLLM: data.useMockLLM });
               if (data.useMockImage !== undefined) setInternal({ useMockImage: data.useMockImage });
               setInternal({
