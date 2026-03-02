@@ -19,7 +19,7 @@ export class HttpImageProvider implements ImageProvider {
       // 构建请求体（OpenAI Images API 格式）
       const requestBody = {
         model: this.model,
-        prompt: story,
+        prompt: `符合故事场景的图片，${story}`,
         n: 1,
         size: '1024x1024',
         response_format: 'url',

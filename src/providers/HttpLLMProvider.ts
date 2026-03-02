@@ -19,12 +19,7 @@ export class HttpLLMProvider implements LLMProvider {
       const keywordsText = keywords.join('、');
 
       // 构建用户消息
-      const userMessage = `请写一个适合儿童的中文小故事。
-要求：
-1. 故事中要包含以下关键词：${keywordsText}
-2. 故事长度不超过 ${maxChars} 个中文字符
-3. 语言生动有趣，适合儿童理解
-4. 只返回故事内容，不要其他说明`;
+      const userMessage = `用${keywordsText}生成一个词汇量适合2年级以下小朋友的故事，字数低于${maxChars}。`;
 
       // 构建请求体（Anthropic Messages API 格式）
       const requestBody = {
