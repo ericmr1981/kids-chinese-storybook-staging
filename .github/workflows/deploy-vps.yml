@@ -68,7 +68,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           key_path: .github/.deploy_key
           command_timeout: 15m
-          script: |
+          script: |-
             set -euo pipefail
 
             APP_DIR=/opt/apps/kids-chinese-storybook
@@ -125,36 +125,36 @@ jobs:
             chmod 600 "$APP_DIR/keys.enc"
 
             # 前端 systemd 服务
-            cat >/etc/systemd/system/kids-storybook-frontend.service <<'UNIT'
-[Unit]
-Description=Kids Chinese Storybook Frontend
-After=network.target
-[Service]
-Type=simple
-WorkingDirectory=/opt/apps/kids-chinese-storybook
-ExecStart=/usr/bin/env pnpm preview
-Restart=always
-RestartSec=2
-[Install]
-WantedBy=multi-user.target
-UNIT
+            cat > /etc/systemd/system/kids-storybook-frontend.service << 'EOF'
+            [Unit]
+            Description=Kids Chinese Storybook Frontend
+            After=network.target
+            [Service]
+            Type=simple
+            WorkingDirectory=/opt/apps/kids-chinese-storybook
+            ExecStart=/usr/bin/env pnpm preview
+            Restart=always
+            RestartSec=2
+            [Install]
+            WantedBy=multi-user.target
+            EOF
 
             # 后端 systemd 服务
-            cat >/etc/systemd/system/kids-storybook-backend.service <<'UNIT'
-[Unit]
-Description=Kids Chinese Storybook Backend
-After=network.target
-[Service]
-Type=simple
-WorkingDirectory=/opt/apps/kids-chinese-storybook/backend
-ExecStart=/usr/bin/env node dist/index.js
-Restart=always
-RestartSec=2
-Environment=NODE_ENV=production
-EnvironmentFile=/etc/kids-storybook/backend.env
-[Install]
-WantedBy=multi-user.target
-UNIT
+            cat > /etc/systemd/system/kids-storybook-backend.service << 'EOF'
+            [Unit]
+            Description=Kids Chinese Storybook Backend
+            After=network.target
+            [Service]
+            Type=simple
+            WorkingDirectory=/opt/apps/kids-chinese-storybook/backend
+            ExecStart=/usr/bin/env node dist/index.js
+            Restart=always
+            RestartSec=2
+            Environment=NODE_ENV=production
+            EnvironmentFile=/etc/kids-storybook/backend.env
+            [Install]
+            WantedBy=multi-user.target
+            EOF
 
             systemctl daemon-reload
             systemctl enable --now kids-storybook-frontend.service
