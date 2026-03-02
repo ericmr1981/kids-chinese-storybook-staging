@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useEffect } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useSettingsStore } from '../store/settingsStore';
@@ -7,11 +6,6 @@ import { PageShell } from '../components/PageShell';
 
 export function SettingsPage() {
   const settings = useSettingsStore();
-
-  // 组件挂载时从服务器加载
-  useEffect(() => {
-    settings.loadSettingsFromServer();
-  }, [settings]);
 
   return (
     <PageShell>

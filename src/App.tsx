@@ -1,9 +1,21 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, useEffect } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CreateStoryPage } from './pages/CreateStoryPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Button } from './components/Button';
+import { useSettingsStore } from './store/settingsStore';
+
+function SettingsLoader() {
+  const settings = useSettingsStore();
+
+  useEffect(() => {
+    // 应用启动时自动加载服务器配置
+    settings.loadSettingsFromServer();
+  }, [settings]);
+
+  return null;
+}
 function requirePortalAuth() {
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isLocal) return;
@@ -63,6 +75,7 @@ function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen">
+        <SettingsLoader />
         <NavBar />
 
         <Routes>
