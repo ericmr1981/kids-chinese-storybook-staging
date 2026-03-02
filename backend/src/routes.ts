@@ -11,24 +11,44 @@ const requirePortalAuth = (req: any, res: any, next: any) => {
   next();
 };
 
-// GET /api/settings - 获取保存的 Key
+// GET /api/settings - 获取保存的配置
 router.get('/settings', requirePortalAuth, async (req, res) => {
   try {
     const settings = await (await import('./storage.js')).getSettings();
     res.json(settings);
-  } catch {
+  } catch (error) {
+    console.error('Failed to retrieve settings:', error);
     res.status(500).json({ error: 'Failed to retrieve settings' });
   }
 });
 
-// POST /api/settings - 保存 Key
+// POST /api/settings - 保存所有设置
 router.post('/settings', requirePortalAuth, async (req, res) => {
   try {
-    const { llmKey, imageKey } = req.body;
-    if (!llmKey && !imageKey) return res.status(400).json({ error: 'At least one key required' });
-    await (await import('./storage.js')).saveSettings({ llmKey, imageKey });
+    const {
+      useMockLLM,
+      llmEndpoint,
+      llmKey,
+      llmModel,
+      useMockImage,
+      imageEndpoint,
+      imageKey,
+      imageModel,
+    } = req.body;
+
+    await (await import('./storage.js')).saveSettings({
+      useMockLLM,
+      llmEndpoint,
+      llmKey,
+      llmModel,
+      useMockImage,
+      imageEndpoint,
+      imageKey,
+      imageModel,
+    });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('Failed to save settings:', error);
     res.status(500).json({ error: 'Failed to save settings' });
   }
 });

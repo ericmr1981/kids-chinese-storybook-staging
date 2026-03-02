@@ -10,6 +10,8 @@ interface SettingsStore {
   imageEndpoint: string;
   imageKey: string;
   imageModel: string;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  saveError: string | null;
 
   setUseMockLLM: (useMock: boolean) => void;
   setLLMEndpoint: (endpoint: string) => void;
@@ -19,6 +21,7 @@ interface SettingsStore {
   setImageEndpoint: (endpoint: string) => void;
   setImageKey: (key: string) => void;
   setImageModel: (model: string) => void;
+  setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
 
   loadSettingsFromServer: () => Promise<void>;
   saveSettingsToServer: () => Promise<void>;
@@ -46,7 +49,20 @@ export const useSettingsStore = create<SettingsStore>()(
               imageModel: state.imageModel,
             }),
           });
-        } catch { /* 静默失败 */ }
+          set({ saveStatus: 'saved' });
+          // 2 秒后重置为 idle
+          setTimeout(() => set({ saveStatus: 'idle' }), 2000);
+        } catch (error) {
+          set({
+            saveStatus: 'error',
+            saveError: error instanceof Error ? error.message : '保存失败'
+          });
+        }
+      };
+
+      // 内部设置函数，不触发 autoSave
+      const setInternal = (updates: Partial<SettingsStore>) => {
+        set(updates);
       };
 
       return {
@@ -58,38 +74,43 @@ export const useSettingsStore = create<SettingsStore>()(
         imageEndpoint: '/api/ark/images/generations',
         imageKey: '',
         imageModel: 'doubao-seedream-4-0-250828',
+        saveStatus: 'idle',
+        saveError: null,
 
         setUseMockLLM: (useMock) => {
-          set({ useMockLLM: useMock });
+          set({ useMockLLM: useMock, saveStatus: 'saving' });
           autoSave();
         },
         setLLMEndpoint: (endpoint) => {
-          set({ llmEndpoint: endpoint });
+          set({ llmEndpoint: endpoint, saveStatus: 'saving' });
           autoSave();
         },
         setLLMKey: (key) => {
-          set({ llmKey: key });
+          set({ llmKey: key, saveStatus: 'saving' });
           autoSave();
         },
         setLLMModel: (model) => {
-          set({ llmModel: model });
+          set({ llmModel: model, saveStatus: 'saving' });
           autoSave();
         },
         setUseMockImage: (useMock) => {
-          set({ useMockImage: useMock });
+          set({ useMockImage: useMock, saveStatus: 'saving' });
           autoSave();
         },
         setImageEndpoint: (endpoint) => {
-          set({ imageEndpoint: endpoint });
+          set({ imageEndpoint: endpoint, saveStatus: 'saving' });
           autoSave();
         },
         setImageKey: (key) => {
-          set({ imageKey: key });
+          set({ imageKey: key, saveStatus: 'saving' });
           autoSave();
         },
         setImageModel: (model) => {
-          set({ imageModel: model });
+          set({ imageModel: model, saveStatus: 'saving' });
           autoSave();
+        },
+        setSaveStatus: (status) => {
+          set({ saveStatus: status });
         },
 
         loadSettingsFromServer: async () => {
@@ -98,14 +119,18 @@ export const useSettingsStore = create<SettingsStore>()(
             if (res.ok) {
               const data = await res.json();
               // 加载所有设置，如果服务器有值则覆盖本地默认值
-              if (data.useMockLLM !== undefined) set({ useMockLLM: data.useMockLLM });
-              if (data.llmEndpoint) set({ llmEndpoint: data.llmEndpoint });
-              if (data.llmKey) set({ llmKey: data.llmKey });
-              if (data.llmModel) set({ llmModel: data.llmModel });
-              if (data.useMockImage !== undefined) set({ useMockImage: data.useMockImage });
-              if (data.imageEndpoint) set({ imageEndpoint: data.imageEndpoint });
-              if (data.imageKey) set({ imageKey: data.imageKey });
-              if (data.imageModel) set({ imageModel: data.imageModel });
+              // 使用 !== undefined 判断，支持空字符串值
+              if (data.useMockLLM !== undefined) setInternal({ useMockLLM: data.useMockLLM });
+              if (data.useMockImage !== undefined) setInternal({ useMockImage: data.useMockImage });
+              setInternal({
+                llmEndpoint: data.llmEndpoint ?? '',
+                llmKey: data.llmKey ?? '',
+                llmModel: data.llmModel ?? '',
+                imageEndpoint: data.imageEndpoint ?? '',
+                imageKey: data.imageKey ?? '',
+                imageModel: data.imageModel ?? '',
+              });
+              // zustand persist 会自动持久化到 localStorage
             }
           } catch { /* 静默失败 */ }
         },

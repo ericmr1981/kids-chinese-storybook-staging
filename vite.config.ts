@@ -6,7 +6,7 @@ export default defineConfig({
   base: process.env.VITE_BASE_PATH || '/',
   plugins: [react()],
   server: {
-    port: 8083,
+    port: 8084,
     proxy: {
       '/api/settings': {
         target: 'http://localhost:3000',
@@ -28,7 +28,7 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    port: 8083,
+    port: 8084,
     proxy: {
       '/api/settings': {
         target: 'http://localhost:3000',

@@ -11,9 +11,10 @@ function SettingsLoader() {
   const settings = useSettingsStore();
 
   useEffect(() => {
-    // 应用启动时自动加载服务器配置
+    // 应用启动时自动加载服务器配置（只执行一次）
     settings.loadSettingsFromServer();
-  }, [settings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 }

@@ -12,13 +12,29 @@ export function SettingsPage() {
       <div className="min-h-screen p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* 标题和返回 */}
-        <div className="flex items-center gap-4">
-          <Link to="/">
-            <Button variant="ghost" size="sm">
-              ← 返回
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-neutral-800">⚙️ 设置</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/">
+              <Button variant="ghost" size="sm">
+                ← 返回
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold text-neutral-800">⚙️ 设置</h1>
+          </div>
+          {/* 保存状态指示器 */}
+          <div className="text-sm">
+            {settings.saveStatus === 'saving' && (
+              <span className="text-neutral-500">💾 保存中...</span>
+            )}
+            {settings.saveStatus === 'saved' && (
+              <span className="text-green-600">✓ 已保存</span>
+            )}
+            {settings.saveStatus === 'error' && (
+              <span className="text-red-500" title={settings.saveError || ''}>
+                ✕ 保存失败
+              </span>
+            )}
+          </div>
         </div>
 
         {/* LLM 设置 */}
@@ -110,7 +126,7 @@ export function SettingsPage() {
         {/* 提示信息 */}
         <div className="p-4 bg-secondary-50 border border-secondary-200 rounded-xl space-y-3">
           <p className="text-sm text-secondary-700">
-            💡 提示：所有设置会自动保存到服务器，跨浏览器共享
+            💡 提示：所有设置会自动保存到服务器和本地，跨浏览器共享
           </p>
           <p className="text-sm text-green-600">
             🔒 安全提醒：API Keys 加密存储在服务器端，不会提交到 Git 仓库
