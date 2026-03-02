@@ -60,13 +60,6 @@ export function SettingsPage() {
                 value={settings.llmKey}
                 onChange={(e) => settings.setLLMKey(e.target.value)}
               />
-              {settings.llmKey && (
-                <div>
-                  <Button onClick={() => settings.saveSettingsToServer()} size="sm">
-                    保存到服务器
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -110,13 +103,6 @@ export function SettingsPage() {
                 value={settings.imageKey}
                 onChange={(e) => settings.setImageKey(e.target.value)}
               />
-              {settings.imageKey && (
-                <div>
-                  <Button onClick={() => settings.saveSettingsToServer()} size="sm">
-                    保存到服务器
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -124,7 +110,7 @@ export function SettingsPage() {
         {/* 提示信息 */}
         <div className="p-4 bg-secondary-50 border border-secondary-200 rounded-xl space-y-3">
           <p className="text-sm text-secondary-700">
-            💡 提示：API Keys 可点击"保存到服务器"按钮保存到后端，跨浏览器共享
+            💡 提示：所有设置会自动保存到服务器，跨浏览器共享
           </p>
           <p className="text-sm text-green-600">
             🔒 安全提醒：API Keys 加密存储在服务器端，不会提交到 Git 仓库
