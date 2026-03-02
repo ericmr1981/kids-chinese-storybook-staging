@@ -47,11 +47,6 @@ function NavBar() {
                 书架
               </Button>
             </Link>
-            <Link to="/settings">
-              <Button variant="ghost" size="sm">
-                设置
-              </Button>
-            </Link>
           </div>
         </div>
       </div>

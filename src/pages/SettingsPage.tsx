@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useSettingsStore } from '../store/settingsStore';
@@ -6,6 +7,11 @@ import { PageShell } from '../components/PageShell';
 
 export function SettingsPage() {
   const settings = useSettingsStore();
+
+  // 组件挂载时从服务器加载
+  useEffect(() => {
+    settings.loadSettingsFromServer();
+  }, [settings]);
 
   return (
     <PageShell>
@@ -60,6 +66,13 @@ export function SettingsPage() {
                 value={settings.llmKey}
                 onChange={(e) => settings.setLLMKey(e.target.value)}
               />
+              {settings.llmKey && (
+                <div>
+                  <Button onClick={() => settings.saveSettingsToServer()} size="sm">
+                    保存到服务器
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -103,6 +116,13 @@ export function SettingsPage() {
                 value={settings.imageKey}
                 onChange={(e) => settings.setImageKey(e.target.value)}
               />
+              {settings.imageKey && (
+                <div>
+                  <Button onClick={() => settings.saveSettingsToServer()} size="sm">
+                    保存到服务器
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -110,10 +130,10 @@ export function SettingsPage() {
         {/* 提示信息 */}
         <div className="p-4 bg-secondary-50 border border-secondary-200 rounded-xl space-y-3">
           <p className="text-sm text-secondary-700">
-            💡 提示：所有设置会自动保存到浏览器本地存储
+            💡 提示：API Keys 可点击"保存到服务器"按钮保存到后端，跨浏览器共享
           </p>
-          <p className="text-sm text-red-600">
-            ⚠️ 安全提醒：API Key 仅保存在浏览器本地，不会提交到 Git 仓库
+          <p className="text-sm text-green-600">
+            🔒 安全提醒：API Keys 加密存储在服务器端，不会提交到 Git 仓库
           </p>
           <p className="text-sm text-neutral-700">
             🔧 开发环境代理：
@@ -124,8 +144,8 @@ export function SettingsPage() {
             <br />
             这些路径会通过 Vite proxy 代理到真实 API，避免 CORS 问题
           </p>
-          <p className="text-sm text-orange-600">
-            ⚠️ 生产部署注意：GitHub Pages 等静态托管无法使用 Vite proxy，需要自行搭建后端代理或 Serverless，否则会因 CORS 无法调用 API 且 API Key 不安全
+          <p className="text-sm text-neutral-700">
+            🔐 设置页面隐藏：需直接输入 <code className="bg-neutral-200 px-1 rounded">/settings</code> URL 访问
           </p>
         </div>
       </div>

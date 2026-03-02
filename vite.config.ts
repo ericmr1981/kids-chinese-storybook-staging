@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     port: 8083,
     proxy: {
+      '/api/settings': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
       // Anthropic-compatible API proxy (阿里云 DashScope)
       '/api/anthropic': {
         target: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
@@ -26,6 +30,10 @@ export default defineConfig({
     host: true,
     port: 8083,
     proxy: {
+      '/api/settings': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
       // Anthropic-compatible API proxy (阿里云 DashScope)
       '/api/anthropic': {
         target: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',

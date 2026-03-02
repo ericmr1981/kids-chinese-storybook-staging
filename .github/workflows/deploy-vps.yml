@@ -108,28 +108,58 @@ jobs:
             pnpm config set registry https://registry.npmmirror.com
             npm config set registry https://registry.npmmirror.com || true
 
+            # 后端构建
+            cd "$APP_DIR/backend"
+            if [ -d "$APP_DIR/backend" ]; then
+              pnpm install
+              pnpm build
+            fi
+
+            # 前端构建
+            cd "$APP_DIR"
             pnpm install --frozen-lockfile
             pnpm build
 
-            cat >/etc/systemd/system/kids-chinese-storybook.service <<'UNIT'
-            [Unit]
-            Description=Kids Chinese Storybook (Vite preview)
-            After=network.target
+            # 确保 keys.enc 文件存在
+            touch "$APP_DIR/keys.enc"
+            chmod 600 "$APP_DIR/keys.enc"
 
-            [Service]
-            Type=simple
-            WorkingDirectory=/opt/apps/kids-chinese-storybook
-            ExecStart=/usr/bin/env pnpm preview
-            Restart=always
-            RestartSec=2
-            Environment=NODE_ENV=production
+            # 前端 systemd 服务
+            cat >/etc/systemd/system/kids-storybook-frontend.service <<'UNIT'
+[Unit]
+Description=Kids Chinese Storybook Frontend
+After=network.target
+[Service]
+Type=simple
+WorkingDirectory=/opt/apps/kids-chinese-storybook
+ExecStart=/usr/bin/env pnpm preview
+Restart=always
+RestartSec=2
+[Install]
+WantedBy=multi-user.target
+UNIT
 
-            [Install]
-            WantedBy=multi-user.target
-            UNIT
+            # 后端 systemd 服务
+            cat >/etc/systemd/system/kids-storybook-backend.service <<'UNIT'
+[Unit]
+Description=Kids Chinese Storybook Backend
+After=network.target
+[Service]
+Type=simple
+WorkingDirectory=/opt/apps/kids-chinese-storybook/backend
+ExecStart=/usr/bin/env node dist/index.js
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/kids-storybook/backend.env
+[Install]
+WantedBy=multi-user.target
+UNIT
 
             systemctl daemon-reload
-            systemctl enable --now kids-chinese-storybook.service
-            systemctl restart kids-chinese-storybook.service
+            systemctl enable --now kids-storybook-frontend.service
+            systemctl enable --now kids-storybook-backend.service
+            systemctl restart kids-storybook-frontend.service
+            systemctl restart kids-storybook-backend.service
 
-            echo "Deployed. Listening on 0.0.0.0:8083"
+            echo "Deployed. Frontend: 0.0.0.0:8083, Backend: 0.0.0.0:3000"

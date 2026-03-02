@@ -19,11 +19,14 @@ interface SettingsStore {
   setImageEndpoint: (endpoint: string) => void;
   setImageKey: (key: string) => void;
   setImageModel: (model: string) => void;
+
+  loadSettingsFromServer: () => Promise<void>;
+  saveSettingsToServer: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       useMockLLM: true,
       llmEndpoint: '/api/anthropic/v1/messages',
       llmKey: '',
@@ -41,6 +44,27 @@ export const useSettingsStore = create<SettingsStore>()(
       setImageEndpoint: (endpoint) => set({ imageEndpoint: endpoint }),
       setImageKey: (key) => set({ imageKey: key }),
       setImageModel: (model) => set({ imageModel: model }),
+
+      loadSettingsFromServer: async () => {
+        try {
+          const res = await fetch('/api/settings', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.llmKey) set({ llmKey: data.llmKey });
+            if (data.imageKey) set({ imageKey: data.imageKey });
+          }
+        } catch { /* 静默失败 */ }
+      },
+
+      saveSettingsToServer: async () => {
+        const state = get();
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ llmKey: state.llmKey, imageKey: state.imageKey }),
+        });
+      },
     }),
     {
       name: 'settings-storage',
