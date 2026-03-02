@@ -8,7 +8,9 @@
 - **Vite** - 快速的构建工具
 - **Tailwind CSS** - 实用优先的 CSS 框架
 - **React Router v6** - 路由管理
-- **Zustand** - 轻量级状态管理（持久化到 localStorage）
+- **Zustand** - 轻量级状态管理（持久化到 localStorage + 服务器同步）
+- **Express (Node.js)** - 后端服务（端口 3000）
+- **AES-256-GCM** - API Key 加密存储
 - **Web Speech API** - 浏览器原生语音合成
 
 ## 核心功能
@@ -50,6 +52,15 @@ src/
 │   └── cn.ts
 ├── App.tsx         # 主应用组件
 └── index.css       # 全局样式
+backend/            # 后端服务（独立 Node.js 应用）
+├── src/
+│   ├── index.ts    # Express 主服务器
+│   ├── routes.ts   # API 路由（Portal Auth 中间件）
+│   ├── encryption.ts  # AES-256-GCM 加密工具
+│   └── storage.ts  # 文件存储（keys.enc）
+├── package.json
+├── tsconfig.json
+└── dist/           # 编译输出
 ```
 
 ## 安装
@@ -70,6 +81,7 @@ pnpm dev
 
 Vite 开发服务器已配置代理，用于避免 CORS 问题：
 
+- `/api/settings` → `http://localhost:3000` （后端 API Key 存储）
 - `/api/anthropic` → `https://coding.dashscope.aliyuncs.com/apps/anthropic`
 - `/api/ark` → `https://ark.cn-beijing.volces.com/api/v3`
 
@@ -80,7 +92,43 @@ Vite 开发服务器已配置代理，用于避免 CORS 问题：
 
 这些相对路径会自动通过 Vite proxy 代理到真实 API。
 
-**生产部署注意**：GitHub Pages 等静态托管服务无法使用 Vite proxy。如需在生产环境使用真实 API，必须自行搭建后端代理服务或使用 Serverless（如 Cloudflare Workers、Vercel Functions、阿里云函数计算等），否则会因 CORS 无法调用 API，且 API Key 直接暴露在前端极不安全。
+### 后端服务（API Key 加密存储）
+
+本应用包含独立的后端服务，用于安全存储 API Key：
+
+- **端口**: 3000
+- **加密方式**: AES-256-GCM
+- **存储文件**: `keys.enc`（服务器端加密文件）
+- **认证**: Portal Auth（复用前端 `portal_auth` cookie）
+- **设置页面**: `/settings`（已从导航栏隐藏，需直接输入 URL 访问）
+
+#### API Key 保存流程
+
+1. 在设置页面输入 API Key
+2. 点击「保存到服务器」按钮
+3. 前端通过 `/api/settings` POST 请求发送到后端
+4. 后端使用 32 字节环境变量 `ENCRYPTION_KEY` 加密后写入 `keys.enc`
+
+#### API Key 加载流程
+
+1. 进入设置页面时自动从服务器加载
+2. 前端通过 `/api/settings` GET 请求获取
+3. 后端解密 `keys.enc` 并返回
+4. 数据自动同步到 localStorage
+
+#### 后端目录结构
+
+```
+backend/
+├── src/
+│   ├── index.ts       # Express 主服务器
+│   ├── routes.ts      # API 路由（Portal Auth 中间件）
+│   ├── encryption.ts  # AES-256-GCM 加密工具
+│   └── storage.ts     # 文件存储
+├── package.json
+├── tsconfig.json
+└── dist/              # 编译输出
+```
 
 ## 构建
 
@@ -216,27 +264,26 @@ Mock Provider 是开箱即用的，不需要任何配置：
 
 ### 安全提醒
 
-⚠️ **重要**：API Key 仅保存在浏览器的 localStorage 中，不会提交到 Git 仓库。请勿在代码中硬编码任何 API Key。
+🔒 **API Key 安全存储**：
 
-如果您使用 Git 进行版本控制，建议在 `.gitignore` 中添加：
-```
-# 防止意外提交包含敏感信息的文件
-.env
-.env.local
-*.key
-```
+- **服务器端加密存储**: API Keys 使用 AES-256-GCM 加密后保存在服务器端的 `keys.enc` 文件
+- **Portal Auth 保护**: 后端 API 端点复用前端 `portal_auth` cookie 进行认证
+- **设置页面隐藏**: 设置页面 `/settings` 已从导航栏移除，需直接输入 URL 访问
+- **跨浏览器共享**: 保存到服务器的 API Keys 可在不同浏览器间共享
+- **不提交到 Git**: `keys.enc` 和加密密钥配置文件不会提交到仓库
 
-⚠️ **生产环境安全警告**：
-- 静态托管（如 GitHub Pages）无法隐藏 API Key，所有 API Key 都会暴露在前端代码中
-- 生产环境必须使用后端代理服务，API Key 应保存在服务器端
-- 推荐使用 Serverless（Cloudflare Workers、Vercel Functions、阿里云函数计算等）作为代理层
+⚠️ **重要提醒**：
+
+- 请勿在代码中硬编码任何 API Key
+- 确保后端环境文件 `/etc/kids-storybook/backend.env` 权限为 600（仅所有者可读写）
+- 加密密钥丢失后无法恢复已加密的 API Keys，请备份 `backend.env`
 
 ## 路由说明
 
 - `/` - 首页，应用介绍和入口
 - `/create` - 创建故事页，输入关键词生成故事
 - `/library` - 故事书架，查看和管理保存的故事
-- `/settings` - 设置页，配置 Provider
+- `/settings` - 设置页，配置 Provider 和保存 API Keys（已从导航栏隐藏，需直接输入 URL 访问）
 
 ## 设计风格
 
@@ -296,22 +343,31 @@ Mock Provider 是开箱即用的，不需要任何配置：
 - [ ] LLM Endpoint、Model、Key 输入正常
 - [ ] Image Endpoint、Model、Key 输入正常
 - [ ] 刷新页面后设置保持（localStorage 持久化）
+- [ ] 点击「保存到服务器」按钮保存 API Keys
+- [ ] 页面加载时从服务器获取已保存的 API Keys
 - [ ] 显示安全提醒和代理说明
 
-#### 6. HTTP Provider（如配置）
+#### 6. 后端 API Key 存储（生产环境）
+- [ ] 后端服务正常运行（端口 3000）
+- [ ] `keys.enc` 文件权限为 600
+- [ ] 加密密钥配置文件权限为 600
+- [ ] API Keys 跨浏览器共享正常
+- [ ] Portal Auth 认证保护 API 端点
+
+#### 7. HTTP Provider（如配置）
 - [ ] 取消勾选 Mock，填写 API Endpoint、Model 和 Key
 - [ ] 生成故事时调用 HTTP API（开发环境通过代理，无 CORS）
 - [ ] API 失败时显示错误提示
 - [ ] 配图生成时调用 HTTP API（开发环境通过代理，无 CORS）
 - [ ] API 失败时显示错误提示
 
-#### 7. 响应式设计
+#### 8. 响应式设计
 - [ ] 在手机（375px）上布局正常
 - [ ] 在平板（768px）上布局正常
 - [ ] 在桌面（1024px+）上布局正常
 - [ ] 导航栏在移动端可正常使用
 
-#### 8. 状态管理
+#### 9. 状态管理
 - [ ] 刷新页面后故事列表保持
 - [ ] 刷新页面后设置保持
 - [ ] 清空浏览器数据后数据重置
@@ -346,7 +402,7 @@ ISC
 - 依赖安装加速：建议设置 pnpm/npm 镜像源为 `https://registry.npmmirror.com`。
 - GitHub 拉取加速（可选）：`https://ghproxy.com/https://github.com/...`
 
-> ⚠️ 安全提醒：生产环境不要在浏览器端直接使用真实 API Key。建议改为服务端代理/Serverless 代管 key。
+> ⚠️ 安全提醒：生产环境 API Key 已通过后端服务加密存储（AES-256-GCM），无需额外 Serverless 代管。
 
 ## 门户集成（/kids 子路径）
 
@@ -356,4 +412,4 @@ ISC
 VITE_BASE_PATH=/kids/ pnpm build
 ```
 
-并确保反向代理把 `/kids/`、以及 `/api/anthropic`、`/api/ark` 转发到本服务。
+并确保反向代理把 `/kids/`、`/api/settings`、`/api/anthropic`、`/api/ark` 转发到本服务。
