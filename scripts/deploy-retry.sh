@@ -120,13 +120,17 @@ EOFENV
 
         # 验证后端
         backend_code=\$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:$BACKEND_PORT/api/settings || echo '000')
+        llm_proxy_code=\$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X POST http://localhost:$BACKEND_PORT/api/anthropic/v1/messages -H 'content-type: application/json' -d '{}' || echo '000')
+        image_proxy_code=\$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X POST http://localhost:$BACKEND_PORT/api/ark/images/generations -H 'content-type: application/json' -d '{}' || echo '000')
 
         echo ''
         echo '=== 部署验证结果 ==='
         echo \"前端 (端口$FRONTEND_PORT): HTTP \$frontend_code\"
         echo \"后端 (端口$BACKEND_PORT): HTTP \$backend_code\"
+        echo \"LLM 代理 (/api/anthropic): HTTP \$llm_proxy_code\"
+        echo \"图片代理 (/api/ark): HTTP \$image_proxy_code\"
 
-        if [ \"\$frontend_code\" = \"200\" ] && [ \"\$backend_code\" = \"200\" ]; then
+        if [ \"\$frontend_code\" = \"200\" ] && [ \"\$backend_code\" = \"200\" ] && [ \"\$llm_proxy_code\" != \"404\" ] && [ \"\$llm_proxy_code\" != \"000\" ] && [ \"\$image_proxy_code\" != \"404\" ] && [ \"\$image_proxy_code\" != \"000\" ]; then
             echo ''
             echo '✅ 部署成功！'
             echo 'DEPLOY_SUCCESS'
