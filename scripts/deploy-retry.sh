@@ -9,11 +9,11 @@ MAX_RETRIES=3
 RETRY_DELAY=5  # 秒
 
 # SSH 配置
-SSH_KEY="/Users/ericmr/.ssh/id_ed25519"
 VPS_HOST="112.124.18.246"
 VPS_USER="root"
 VPS_PORT="22"
 VPS_PATH="/opt/apps/kids-chinese-storybook"
+VPS_PASSWORD="${VPS_PASSWORD:-}"
 
 # 项目配置
 FRONTEND_PORT="8084"
@@ -26,10 +26,16 @@ echo "  GitHub → VPS 自动部署脚本"
 echo "========================================"
 echo ""
 
-# 检查 SSH key 是否存在
-if [ ! -f "$SSH_KEY" ]; then
-    echo "❌ SSH key 不存在：$SSH_KEY"
+# 检查 sshpass 是否存在
+if ! command -v sshpass >/dev/null 2>&1; then
+    echo "❌ 缺少 sshpass，请先安装：brew install hudochenkov/sshpass/sshpass"
     exit 1
+fi
+
+# 读取 VPS 密码（优先使用环境变量，避免写入脚本）
+if [ -z "$VPS_PASSWORD" ]; then
+    read -s -p "请输入 VPS 密码: " VPS_PASSWORD
+    echo
 fi
 
 # 检查 GitHub 推送状态
@@ -81,8 +87,10 @@ deploy_via_ssh() {
     echo ""
 
     # 执行部署命令
-    ssh -i "$SSH_KEY" \
+    sshpass -p "$VPS_PASSWORD" ssh \
         -o StrictHostKeyChecking=no \
+        -o PreferredAuthentications=password \
+        -o PubkeyAuthentication=no \
         -o ConnectTimeout=10 \
         -p "$VPS_PORT" \
         "$VPS_USER@$VPS_HOST" "
@@ -191,7 +199,7 @@ else
     echo "🔧 转手动 SSH 部署"
     echo ""
     echo "1️⃣  登录 VPS："
-    echo "   ssh -i $SSH_KEY -p $VPS_PORT $VPS_USER@$VPS_HOST"
+    echo "   ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -p $VPS_PORT $VPS_USER@$VPS_HOST"
     echo ""
     echo "2️⃣  执行部署命令："
     echo "   cd $VPS_PATH && git pull && pnpm install && pnpm build"
@@ -201,7 +209,7 @@ else
     echo "   killall -9 node && cd backend && nohup npx tsx src/index.ts > /var/log/backend.log 2>&1 &"
     echo ""
     echo "3️⃣  一键执行："
-    echo "   ssh -i $SSH_KEY -p $VPS_PORT $VPS_USER@$VPS_HOST \"cd $VPS_PATH && git pull && pnpm install && pnpm build && cat > backend/.env << 'EOF'\\nENCRYPTION_KEY=$ENCRYPTION_KEY\\nEOF\\nkillall -9 node && cd backend && nohup npx tsx src/index.ts > /var/log/backend.log 2>&1 &\""
+    echo "   export VPS_PASSWORD='你的密码' && ./scripts/deploy-retry.sh"
     echo ""
     exit 1
 fi
