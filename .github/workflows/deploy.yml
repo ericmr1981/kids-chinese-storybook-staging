@@ -1,0 +1,218 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build frontend
+        run: pnpm build
+        env:
+          VITE_BASE_PATH: /
+
+      - name: Deploy to VPS via SSH
+        uses: easingthemes/ssh-deploy@v4
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_ARGS: "-avzr --delete"
+          REMOTE_HOST: ${{ secrets.VPS_HOST }}
+          REMOTE_USER: ${{ secrets.VPS_USERNAME }}
+          REMOTE_PORT: ${{ secrets.VPS_PORT }}
+          SOURCE: "."
+          TARGET: "/opt/apps/kids-chinese-storybook"
+          EXCLUDE: "/node_modules/, /.git/, /dist/, /.env, /backend/node_modules/"
+
+      - name: Restart Backend and Verify
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "=== 部署开始 ==="
+            cd /opt/apps/kids-chinese-storybook
+
+            echo "[1/5] 安装依赖..."
+            pnpm install --prod
+
+            echo "[2/5] 确保 .env 存在..."
+            mkdir -p backend
+            if [ ! -f backend/.env ]; then
+              echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" > backend/.env
+            fi
+
+            echo "[3/5] 重启后端服务..."
+            killall -9 node 2>/dev/null || true
+            cd backend
+            nohup npx tsx src/index.ts > /var/log/backend.log 2>&1 &
+
+            echo "[4/5] 等待服务启动..."
+            sleep 5
+
+            echo "[5/5] 验证服务..."
+            frontend_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:8084 || echo '000')
+            backend_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3000/api/settings || echo '000')
+
+            echo ""
+            echo "=== 部署验证结果 ==="
+            echo "前端 (端口 8084): HTTP $frontend_code"
+            echo "后端 (端口 3000): HTTP $backend_code"
+
+            if [ "$frontend_code" = "200" ] && [ "$backend_code" = "200" ]; then
+              echo ""
+              echo "✅ 部署成功！"
+              exit 0
+            else
+              echo ""
+              echo "❌ 部署验证失败"
+              echo ""
+              echo "后端日志（最后 20 行）："
+              tail -20 /var/log/backend.log 2>/dev/null || echo "无法读取日志"
+              exit 1
+            fi
+
+      - name: Auto Retry on Failure (Attempt 2)
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "=== 第 1 次重试 ==="
+            cd /opt/apps/kids-chinese-storybook
+
+            # 清理并重新拉取
+            git fetch origin main
+            git reset --hard origin/main
+
+            pnpm install --prod
+            pnpm build
+
+            killall -9 node 2>/dev/null || true
+            cd backend
+            nohup npx tsx src/index.ts > /var/log/backend.log 2>&1 &
+            sleep 5
+
+            frontend_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:8084 || echo '000')
+            backend_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3000/api/settings || echo '000')
+
+            echo "前端：HTTP $frontend_code, 后端：HTTP $backend_code"
+
+            if [ "$frontend_code" = "200" ] && [ "$backend_code" = "200" ]; then
+              echo "✅ 重试成功！"
+              exit 0
+            else
+              echo "❌ 重试失败"
+              exit 1
+            fi
+
+      - name: Auto Retry on Failure (Attempt 3)
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "=== 第 2 次重试 ==="
+            cd /opt/apps/kids-chinese-storybook
+
+            # 完全清理后重新部署
+            rm -rf node_modules dist backend/node_modules
+            git clean -fdx
+            git fetch origin main
+            git reset --hard origin/main
+
+            pnpm install --prod
+            pnpm build
+
+            killall -9 node 2>/dev/null || true
+            cd backend
+            nohup npx tsx src/index.ts > /var/log/backend.log 2>&1 &
+            sleep 5
+
+            frontend_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:8084 || echo '000')
+            backend_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3000/api/settings || echo '000')
+
+            echo "前端：HTTP $frontend_code, 后端：HTTP $backend_code"
+
+            if [ "$frontend_code" = "200" ] && [ "$backend_code" = "200" ]; then
+              echo "✅ 第 2 次重试成功！"
+              exit 0
+            else
+              echo "❌ 第 2 次重试失败，请手动检查 VPS"
+              echo ""
+              echo "手动部署命令："
+              echo "  ssh -i ~/.ssh/id_ed25519 root@${{ secrets.VPS_HOST }}"
+              echo "  cd /opt/apps/kids-chinese-storybook"
+              echo "  git pull && pnpm install && pnpm build"
+              echo "  cat > backend/.env << 'EOF'"
+              echo "  ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}"
+              echo "  EOF"
+              echo "  killall -9 node && cd backend && npx tsx src/index.ts"
+              exit 1
+            fi
+
+      - name: Notify Deployment Status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ 部署成功！"
+            echo ""
+            echo "访问地址：http://${{ secrets.VPS_HOST }}:8084"
+          else
+            echo "❌ 部署失败（3 次尝试均已失败）"
+            echo ""
+            echo "=== 手动部署步骤 ==="
+            echo ""
+            echo "1. SSH 登录 VPS："
+            echo "   ssh -i ~/.ssh/id_ed25519 root@${{ secrets.VPS_HOST }}"
+            echo ""
+            echo "2. 执行部署命令："
+            echo "   cd /opt/apps/kids-chinese-storybook"
+            echo "   git pull origin main"
+            echo "   pnpm install && pnpm build"
+            echo ""
+            echo "3. 创建环境配置："
+            echo "   cat > backend/.env << 'EOF'"
+            echo "   ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}"
+            echo "   EOF"
+            echo ""
+            echo "4. 重启后端："
+            echo "   killall -9 node"
+            echo "   cd backend && nohup npx tsx src/index.ts > /var/log/backend.log 2>&1 &"
+            echo ""
+            echo "5. 验证服务："
+            echo "   curl http://localhost:8084"
+            echo "   curl http://localhost:3000/api/settings"
+            exit 1
+          fi
