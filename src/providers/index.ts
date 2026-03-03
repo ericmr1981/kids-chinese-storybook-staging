@@ -5,6 +5,13 @@ import type { ImageProvider } from './ImageProvider';
 import { MockImageProvider } from './MockImageProvider';
 import { HttpImageProvider } from './HttpImageProvider';
 
+export * from './LLMProvider';
+export * from './MockLLMProvider';
+export * from './HttpLLMProvider';
+export * from './ImageProvider';
+export * from './MockImageProvider';
+export * from './HttpImageProvider';
+
 export interface ProviderConfig {
   useMockLLM: boolean;
   llmEndpoint: string;
