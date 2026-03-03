@@ -6,11 +6,17 @@ import { StoryCard } from '../components/StoryCard';
 import { SpeakChip } from '../components/SpeakChip';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useStoryStore } from '../store/storyStore';
-import { useSettingsStore } from '../store/settingsStore';
-import { createLLMProvider, createImageProvider } from '../providers';
+import { createLLMProvider, createImageProvider, type ProviderConfig } from '../providers';
 import { PageShell } from '../components/PageShell';
 import type { PartialStory } from '../store/storyStore';
 import type { Story } from '../store/storyStore';
+
+const providerConfig: ProviderConfig = {
+  llmEndpoint: '/api/anthropic/v1/messages',
+  llmModel: 'qwen3-max-2026-01-23',
+  imageEndpoint: '/api/ark/images/generations',
+  imageModel: 'doubao-seedream-4-0-250828',
+};
 
 export function CreateStoryPage() {
   const [keywords, setKeywords] = useState('');
@@ -20,8 +26,6 @@ export function CreateStoryPage() {
   const [notice, setNotice] = useState('');
 
   const addStory = useStoryStore((state) => state.addStory);
-  const settings = useSettingsStore();
-
   const derivedKeywords = useMemo(() => {
     return keywords
       .split(/[,，\s]+/)
@@ -50,13 +54,13 @@ export function CreateStoryPage() {
         .slice(0, 5); // 最多 5 个关键词
 
       let story: string;
-      const llmProvider = createLLMProvider(settings);
+      const llmProvider = createLLMProvider(providerConfig);
       story = await llmProvider.generateStory(keywordArray, 200);
       story = story.trim();
       if (story.length > 200) story = story.slice(0, 200);
 
       let imageUrl: string;
-      const imageProvider = createImageProvider(settings);
+      const imageProvider = createImageProvider(providerConfig);
       imageUrl = await imageProvider.generateImage(story);
 
       const partial: PartialStory = {

@@ -1,33 +1,14 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { CreateStoryPage } from './pages/CreateStoryPage';
 import { LibraryPage } from './pages/LibraryPage';
-import { SettingsPage } from './pages/SettingsPage';
 import { Button } from './components/Button';
-import { useSettingsStore } from './store/settingsStore';
-
-function SettingsLoader() {
-  const settings = useSettingsStore();
-
-  useEffect(() => {
-    // 应用启动时自动加载服务器配置（只执行一次）
-    settings.loadSettingsFromServer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return null;
-}
 function requirePortalAuth() {
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isLocal) return;
   const hasCookie = document.cookie.split(';').some((c) => c.trim().startsWith('portal_auth='));
   if (!hasCookie) {
-    // 检查是否是设置页面，如果是则允许访问（用于测试）
-    const isSettingsPage = window.location.pathname === '/settings' || window.location.pathname.endsWith('/settings');
-    if (!isSettingsPage) {
-      window.location.href = '/login.html';
-    }
+    window.location.href = '/login.html';
   }
 }
 
@@ -77,14 +58,12 @@ function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen">
-        <SettingsLoader />
         <NavBar />
 
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/create" element={<CreateStoryPage />} />
           <Route path="/library" element={<LibraryPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>
     </BrowserRouter>

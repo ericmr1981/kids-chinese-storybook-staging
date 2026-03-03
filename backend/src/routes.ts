@@ -79,37 +79,6 @@ async function proxyRequest(
   }
 }
 
-// GET /api/settings - 获取保存的配置
-router.get('/settings', requirePortalAuth, async (req, res) => {
-  try {
-    const { getLocalConfig } = await import('./localConfig.js');
-    const localConfig = await getLocalConfig();
-    res.json({
-      hasSavedSettings: true,
-      settings: {
-        useMockLLM: false,
-        llmEndpoint: localConfig.llmEndpoint,
-        llmKey: '',
-        llmModel: localConfig.llmModel,
-        useMockImage: false,
-        imageEndpoint: localConfig.imageEndpoint,
-        imageKey: '',
-        imageModel: localConfig.imageModel,
-      },
-    });
-  } catch (error) {
-    console.error('Failed to retrieve settings:', error);
-    res.status(500).json({ error: 'Failed to retrieve settings' });
-  }
-});
-
-// POST /api/settings - 保存所有设置
-router.post('/settings', requirePortalAuth, async (req, res) => {
-  res.status(405).json({
-    error: 'Settings are managed via backend/local-config.json on the server.',
-  });
-});
-
 router.all('/anthropic/*', requirePortalAuth, async (req, res) => {
   await proxyRequest(req, res, ANTHROPIC_BASE_URL, '/api/anthropic');
 });
