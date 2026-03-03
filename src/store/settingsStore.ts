@@ -28,11 +28,11 @@ interface SettingsStore {
 }
 
 const DEFAULT_SETTINGS = {
-  useMockLLM: true,
+  useMockLLM: false,
   llmEndpoint: '/api/anthropic/v1/messages',
   llmKey: '',
   llmModel: 'qwen3-max-2026-01-23',
-  useMockImage: true,
+  useMockImage: false,
   imageEndpoint: '/api/ark/images/generations',
   imageKey: '',
   imageModel: 'doubao-seedream-4-0-250828',
@@ -40,39 +40,13 @@ const DEFAULT_SETTINGS = {
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set, get) => {
+    (set) => {
       // 自动保存到服务器的辅助函数
       const autoSave = async () => {
-        const state = get();
-        try {
-          const res = await fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              useMockLLM: state.useMockLLM,
-              llmEndpoint: state.llmEndpoint,
-              llmKey: state.llmKey,
-              llmModel: state.llmModel,
-              useMockImage: state.useMockImage,
-              imageEndpoint: state.imageEndpoint,
-              imageKey: state.imageKey,
-              imageModel: state.imageModel,
-            }),
-          });
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(errorText || `保存失败 (${res.status})`);
-          }
-          set({ saveStatus: 'saved' });
-          // 2 秒后重置为 idle
-          setTimeout(() => set({ saveStatus: 'idle' }), 2000);
-        } catch (error) {
-          set({
-            saveStatus: 'error',
-            saveError: error instanceof Error ? error.message : '保存失败'
-          });
-        }
+        set({
+          saveStatus: 'error',
+          saveError: '当前改为本地配置文件模式，请编辑 backend/local-config.json',
+        });
       };
 
       // 内部设置函数，不触发 autoSave

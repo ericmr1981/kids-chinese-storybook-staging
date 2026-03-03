@@ -40,16 +40,29 @@ async function proxyRequest(
   routePrefix: string
 ) {
   try {
+    const { getLocalConfig } = await import('./localConfig.js');
+    const localConfig = await getLocalConfig();
     const suffix = req.originalUrl.replace(routePrefix, '') || '/';
     const normalizedBaseUrl = targetBaseUrl.endsWith('/') ? targetBaseUrl : `${targetBaseUrl}/`;
     const normalizedSuffix = suffix.startsWith('/') ? suffix.slice(1) : suffix;
     const targetUrl = new URL(normalizedSuffix, normalizedBaseUrl);
     const method = req.method.toUpperCase();
     const hasBody = method !== 'GET' && method !== 'HEAD';
+    const headers = buildProxyHeaders(req);
+
+    if (routePrefix === '/api/anthropic') {
+      headers.set('x-api-key', localConfig.llmKey);
+      headers.set('authorization', `Bearer ${localConfig.llmKey}`);
+      headers.set('anthropic-version', headers.get('anthropic-version') ?? '2023-06-01');
+    }
+
+    if (routePrefix === '/api/ark') {
+      headers.set('authorization', `Bearer ${localConfig.imageKey}`);
+    }
 
     const upstreamResponse = await fetch(targetUrl, {
       method,
-      headers: buildProxyHeaders(req),
+      headers,
       body: hasBody ? JSON.stringify(req.body) : undefined,
     });
 
@@ -69,8 +82,21 @@ async function proxyRequest(
 // GET /api/settings - 获取保存的配置
 router.get('/settings', requirePortalAuth, async (req, res) => {
   try {
-    const result = await (await import('./storage.js')).getSettings();
-    res.json(result);
+    const { getLocalConfig } = await import('./localConfig.js');
+    const localConfig = await getLocalConfig();
+    res.json({
+      hasSavedSettings: true,
+      settings: {
+        useMockLLM: false,
+        llmEndpoint: localConfig.llmEndpoint,
+        llmKey: '',
+        llmModel: localConfig.llmModel,
+        useMockImage: false,
+        imageEndpoint: localConfig.imageEndpoint,
+        imageKey: '',
+        imageModel: localConfig.imageModel,
+      },
+    });
   } catch (error) {
     console.error('Failed to retrieve settings:', error);
     res.status(500).json({ error: 'Failed to retrieve settings' });
@@ -79,33 +105,9 @@ router.get('/settings', requirePortalAuth, async (req, res) => {
 
 // POST /api/settings - 保存所有设置
 router.post('/settings', requirePortalAuth, async (req, res) => {
-  try {
-    const {
-      useMockLLM,
-      llmEndpoint,
-      llmKey,
-      llmModel,
-      useMockImage,
-      imageEndpoint,
-      imageKey,
-      imageModel,
-    } = req.body;
-
-    await (await import('./storage.js')).saveSettings({
-      useMockLLM,
-      llmEndpoint,
-      llmKey,
-      llmModel,
-      useMockImage,
-      imageEndpoint,
-      imageKey,
-      imageModel,
-    });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Failed to save settings:', error);
-    res.status(500).json({ error: 'Failed to save settings' });
-  }
+  res.status(405).json({
+    error: 'Settings are managed via backend/local-config.json on the server.',
+  });
 });
 
 router.all('/anthropic/*', requirePortalAuth, async (req, res) => {

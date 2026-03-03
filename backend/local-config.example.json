@@ -1,0 +1,8 @@
+{
+  "llmEndpoint": "/api/anthropic/v1/messages",
+  "llmModel": "qwen3-max-2026-01-23",
+  "llmKey": "your-dashscope-api-key",
+  "imageEndpoint": "/api/ark/images/generations",
+  "imageModel": "doubao-seedream-4-0-250828",
+  "imageKey": "your-ark-api-key"
+}
