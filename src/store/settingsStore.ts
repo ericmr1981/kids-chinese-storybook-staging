@@ -27,6 +27,17 @@ interface SettingsStore {
   saveSettingsToServer: () => Promise<void>;
 }
 
+const DEFAULT_SETTINGS = {
+  useMockLLM: true,
+  llmEndpoint: '/api/anthropic/v1/messages',
+  llmKey: '',
+  llmModel: 'qwen3-max-2026-01-23',
+  useMockImage: true,
+  imageEndpoint: '/api/ark/images/generations',
+  imageKey: '',
+  imageModel: 'doubao-seedream-4-0-250828',
+} as const;
+
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => {
@@ -34,7 +45,7 @@ export const useSettingsStore = create<SettingsStore>()(
       const autoSave = async () => {
         const state = get();
         try {
-          await fetch('/api/settings', {
+          const res = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -49,6 +60,10 @@ export const useSettingsStore = create<SettingsStore>()(
               imageModel: state.imageModel,
             }),
           });
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText || `保存失败 (${res.status})`);
+          }
           set({ saveStatus: 'saved' });
           // 2 秒后重置为 idle
           setTimeout(() => set({ saveStatus: 'idle' }), 2000);
@@ -66,14 +81,7 @@ export const useSettingsStore = create<SettingsStore>()(
       };
 
       return {
-        useMockLLM: true,
-        llmEndpoint: '/api/anthropic/v1/messages',
-        llmKey: '',
-        llmModel: 'qwen3-max-2026-01-23',
-        useMockImage: true,
-        imageEndpoint: '/api/ark/images/generations',
-        imageKey: '',
-        imageModel: 'doubao-seedream-4-0-250828',
+        ...DEFAULT_SETTINGS,
         saveStatus: 'idle',
         saveError: null,
 
@@ -116,31 +124,25 @@ export const useSettingsStore = create<SettingsStore>()(
         loadSettingsFromServer: async () => {
           try {
             const res = await fetch('/api/settings', { credentials: 'include' });
-            if (res.ok) {
-              const data = await res.json();
-              // 使用服务器设置覆盖本地（确保跨设备同步）
-              // 用户修改设置时会通过 autoSave() 同步到服务器
-              // 只在服务器有明确的非默认值时才覆盖
-              const hasServerSettings = data.useMockLLM !== undefined ||
-                                        data.llmEndpoint ||
-                                        data.llmKey ||
-                                        data.llmModel;
-              if (!hasServerSettings) {
-                // 服务器没有设置，使用本地默认值
-                return;
-              }
-              if (data.useMockLLM !== undefined) setInternal({ useMockLLM: data.useMockLLM });
-              if (data.useMockImage !== undefined) setInternal({ useMockImage: data.useMockImage });
-              setInternal({
-                llmEndpoint: data.llmEndpoint ?? '',
-                llmKey: data.llmKey ?? '',
-                llmModel: data.llmModel ?? '',
-                imageEndpoint: data.imageEndpoint ?? '',
-                imageKey: data.imageKey ?? '',
-                imageModel: data.imageModel ?? '',
-              });
-              // zustand persist 会自动持久化到 localStorage
+            if (!res.ok) {
+              throw new Error(`加载失败 (${res.status})`);
             }
+            const data = await res.json();
+            if (!data?.hasSavedSettings || !data.settings) {
+              return;
+            }
+
+            const serverSettings = data.settings;
+            setInternal({
+              useMockLLM: serverSettings.useMockLLM ?? DEFAULT_SETTINGS.useMockLLM,
+              llmEndpoint: serverSettings.llmEndpoint ?? DEFAULT_SETTINGS.llmEndpoint,
+              llmKey: serverSettings.llmKey ?? DEFAULT_SETTINGS.llmKey,
+              llmModel: serverSettings.llmModel ?? DEFAULT_SETTINGS.llmModel,
+              useMockImage: serverSettings.useMockImage ?? DEFAULT_SETTINGS.useMockImage,
+              imageEndpoint: serverSettings.imageEndpoint ?? DEFAULT_SETTINGS.imageEndpoint,
+              imageKey: serverSettings.imageKey ?? DEFAULT_SETTINGS.imageKey,
+              imageModel: serverSettings.imageModel ?? DEFAULT_SETTINGS.imageModel,
+            });
           } catch { /* 静默失败 */ }
         },
 

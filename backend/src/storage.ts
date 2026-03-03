@@ -15,6 +15,17 @@ export interface Settings {
   imageModel: string;
 }
 
+const DEFAULT_SETTINGS: Settings = {
+  useMockLLM: true,
+  llmEndpoint: '',
+  llmKey: '',
+  llmModel: '',
+  useMockImage: true,
+  imageEndpoint: '',
+  imageKey: '',
+  imageModel: '',
+};
+
 export async function saveSettings(settings: Partial<Settings>): Promise<void> {
   let existing: Partial<Settings> = {};
   try {
@@ -26,30 +37,27 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
   await fs.writeFile(KEYS_FILE_PATH, encrypt(JSON.stringify(updated)), { mode: 0o600 });
 }
 
-export async function getSettings(): Promise<Settings> {
+export async function getSettings(): Promise<{ settings: Settings; hasSavedSettings: boolean }> {
   try {
     const content = await fs.readFile(KEYS_FILE_PATH, 'utf-8');
     const data = JSON.parse(decrypt(content));
     return {
-      useMockLLM: data.useMockLLM ?? true,
-      llmEndpoint: data.llmEndpoint ?? '',
-      llmKey: data.llmKey ?? '',
-      llmModel: data.llmModel ?? '',
-      useMockImage: data.useMockImage ?? true,
-      imageEndpoint: data.imageEndpoint ?? '',
-      imageKey: data.imageKey ?? '',
-      imageModel: data.imageModel ?? '',
+      hasSavedSettings: true,
+      settings: {
+        useMockLLM: data.useMockLLM ?? DEFAULT_SETTINGS.useMockLLM,
+        llmEndpoint: data.llmEndpoint ?? DEFAULT_SETTINGS.llmEndpoint,
+        llmKey: data.llmKey ?? DEFAULT_SETTINGS.llmKey,
+        llmModel: data.llmModel ?? DEFAULT_SETTINGS.llmModel,
+        useMockImage: data.useMockImage ?? DEFAULT_SETTINGS.useMockImage,
+        imageEndpoint: data.imageEndpoint ?? DEFAULT_SETTINGS.imageEndpoint,
+        imageKey: data.imageKey ?? DEFAULT_SETTINGS.imageKey,
+        imageModel: data.imageModel ?? DEFAULT_SETTINGS.imageModel,
+      },
     };
   } catch {
     return {
-      useMockLLM: true,
-      llmEndpoint: '',
-      llmKey: '',
-      llmModel: '',
-      useMockImage: true,
-      imageEndpoint: '',
-      imageKey: '',
-      imageModel: '',
+      hasSavedSettings: false,
+      settings: DEFAULT_SETTINGS,
     };
   }
 }

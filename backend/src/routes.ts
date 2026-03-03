@@ -14,8 +14,8 @@ const requirePortalAuth = (req: any, res: any, next: any) => {
 // GET /api/settings - 获取保存的配置
 router.get('/settings', requirePortalAuth, async (req, res) => {
   try {
-    const settings = await (await import('./storage.js')).getSettings();
-    res.json(settings);
+    const result = await (await import('./storage.js')).getSettings();
+    res.json(result);
   } catch (error) {
     console.error('Failed to retrieve settings:', error);
     res.status(500).json({ error: 'Failed to retrieve settings' });
