@@ -7,7 +7,7 @@ import { SpeakChip } from '../components/SpeakChip';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useStoryStore } from '../store/storyStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { createLLMProvider, createImageProvider } from '../providers';
+import { createLLMProvider, createImageProvider, MockLLMProvider, MockImageProvider } from '../providers';
 import { PageShell } from '../components/PageShell';
 import type { PartialStory } from '../store/storyStore';
 import type { Story } from '../store/storyStore';
@@ -49,15 +49,33 @@ export function CreateStoryPage() {
         .filter(Boolean)
         .slice(0, 5); // 最多 5 个关键词
 
-      // 生成故事
+      // 生成故事 - 优先使用 API，失败时回退到 Mock
+      let story: string;
       const llmProvider = createLLMProvider(settings);
-      let story = await llmProvider.generateStory(keywordArray, 200);
+      try {
+        story = await llmProvider.generateStory(keywordArray, 200);
+      } catch (llmError) {
+        console.warn('LLM API 调用失败，回退到 Mock 模式:', llmError);
+        const mockProvider = new MockLLMProvider();
+        story = await mockProvider.generateStory(keywordArray, 200);
+        setNotice('⚠️ API 不可用，已使用本地模式生成故事');
+      }
       story = story.trim();
       if (story.length > 200) story = story.slice(0, 200);
 
-      // 生成图片
+      // 生成图片 - 优先使用 API，失败时回退到 Mock
+      let imageUrl: string;
       const imageProvider = createImageProvider(settings);
-      const imageUrl = await imageProvider.generateImage(story);
+      try {
+        imageUrl = await imageProvider.generateImage(story);
+      } catch (imageError) {
+        console.warn('图片 API 调用失败，回退到 Mock 模式:', imageError);
+        const mockImageProvider = new MockImageProvider();
+        imageUrl = await mockImageProvider.generateImage(story);
+        if (!notice) {
+          setNotice('⚠️ 图片 API 不可用，已使用本地模式生成图片');
+        }
+      }
 
       const partial: PartialStory = {
         keywords: keywordArray,
@@ -70,7 +88,9 @@ export function CreateStoryPage() {
 
       // 自动保存到书架
       addStory(partial);
-      setNotice('✅ 已自动保存到书架（可在书架删除/清空）');
+      if (!notice) {
+        setNotice('✅ 已自动保存到书架（可在书架删除/清空）');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失败，请重试');
     } finally {
