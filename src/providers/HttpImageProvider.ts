@@ -10,8 +10,8 @@ export class HttpImageProvider implements ImageProvider {
 
   constructor(endpoint: string, apiKey: string, model: string) {
     this.endpoint = endpoint;
-    this.apiKey = apiKey;
-    this.model = model;
+    this.apiKey = apiKey.trim();
+    this.model = model.trim();
   }
 
   async generateImage(story: string): Promise<string> {

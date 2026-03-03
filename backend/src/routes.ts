@@ -41,7 +41,9 @@ async function proxyRequest(
 ) {
   try {
     const suffix = req.originalUrl.replace(routePrefix, '') || '/';
-    const targetUrl = new URL(suffix, targetBaseUrl);
+    const normalizedBaseUrl = targetBaseUrl.endsWith('/') ? targetBaseUrl : `${targetBaseUrl}/`;
+    const normalizedSuffix = suffix.startsWith('/') ? suffix.slice(1) : suffix;
+    const targetUrl = new URL(normalizedSuffix, normalizedBaseUrl);
     const method = req.method.toUpperCase();
     const hasBody = method !== 'GET' && method !== 'HEAD';
 

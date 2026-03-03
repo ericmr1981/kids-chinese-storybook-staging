@@ -10,8 +10,8 @@ export class HttpLLMProvider implements LLMProvider {
 
   constructor(endpoint: string, apiKey: string, model: string) {
     this.endpoint = endpoint;
-    this.apiKey = apiKey;
-    this.model = model;
+    this.apiKey = apiKey.trim();
+    this.model = model.trim();
   }
 
   async generateStory(keywords: string[], maxChars: number): Promise<string> {
